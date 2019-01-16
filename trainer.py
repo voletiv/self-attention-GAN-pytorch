@@ -53,9 +53,6 @@ class Trainer(object):
 
         # Pretrained model
         self.pretrained_model = config.pretrained_model
-        # Check if self.pretrained_model exists
-        if self.pretrained_model:
-            assert os.path.exists(self.pretrained_model), "Path of .pth pretrained_model doesn't exist! Given: " + self.pretrained_model
 
         # Misc
         self.manual_seed = config.manual_seed
@@ -95,21 +92,13 @@ class Trainer(object):
         self.data_iter = iter(self.dataloader)
 
         # Check for CUDA
-        if not self.disable_cuda and torch.cuda.is_available():
-            print("CUDA is available!")
-            self.device = torch.device('cuda')
-        else:
-            print("Cuda is NOT available, running on CPU.")
-            self.device = torch.device('cpu')
-
-        if torch.cuda.is_available() and self.disable_cuda:
-            print("WARNING: You have a CUDA device, so you should probably run without --disable_cuda")
+        utils.check_for_CUDA(self)
 
         # Build G and D
         self.build_models()
 
-        # Start with pretrained model
-        if self.pretrained_model:
+        # Start with pretrained model (if it exists)
+        if self.pretrained_model != '':
             utils.load_pretrained_model(self)
 
         if self.adv_loss == 'dcgan':

@@ -22,8 +22,14 @@ Check `requirements.txt`.
 
 #### 2. Train on custom images in folder a/b/c:
 ```bash
+$ python train.py --data_path 'a/b/c' --save_path 'o/p/q' --batch_size 64 --name sagan
+```
+
+(Warning: Works only on *128x128* images, input images are resized to that. Tweak the Generator first if you would like to use some other image size. And then use `imsize` option:
+```bash
 $ python train.py --data_path 'a/b/c' --save_path 'o/p/q' --batch_size 64 --imsize 64 --name sagan
 ```
+)
 
 Model training will be recorded in a new folder inside `--save_path` with the name `<timestamp>_<name>_<basename of data_path>`.
 

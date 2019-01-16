@@ -51,7 +51,9 @@ def get_parameters():
     parser.add_argument('--max_frames_per_gif', type=int, default='100')
 
     # Pretrained model
-    parser.add_argument('--pretrained_model', type=str, default=None)
+    parser.add_argument('--pretrained_model', type=str, default='')
+    parser.add_argument('--state_dict_or_model', type=str, default='', help="Specify whether .pth pretrained_model is a 'state_dict' or a complete 'model'")
+    parser.add_argument('--num_of_classes', type=int, default=0)
 
     # Misc
     parser.add_argument('--manual_seed', type=int, default=29)

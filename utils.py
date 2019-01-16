@@ -75,6 +75,7 @@ def make_dataloader(batch_size, dataset_type, data_path, shuffle=True, num_worke
         dataset = dset.FakeData(image_size=(3, centercrop_size, centercrop_size), transform=transforms.ToTensor())
         num_of_classes = 10
     assert dataset
+    print("Data found! # of classes =", num_of_classes, ", # of images =", len(dataset))
     # Make dataloader from dataset
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, drop_last=drop_last)
     return dataloader, num_of_classes
@@ -189,16 +190,47 @@ def save_ckpt(sagan_obj, final=False):
 
 
 def load_pretrained_model(sagan_obj):
+    # Check for path
+    assert os.path.exists(sagan_obj.pretrained_model), "Path of .pth pretrained_model doesn't exist! Given: " + sagan_obj.pretrained_model
     checkpoint = torch.load(sagan_obj.pretrained_model)
-    try:
+    # If we know it is a state_dict (instead of complete model)
+    if sagan_obj.state_dict_or_model == 'state_dict':
         sagan_obj.start = checkpoint['step'] + 1
         sagan_obj.G.load_state_dict(checkpoint['G_state_dict'])
         sagan_obj.G_optimizer.load_state_dict(checkpoint['G_optimizer_state_dict'])
         sagan_obj.D.load_state_dict(checkpoint['D_state_dict'])
         sagan_obj.D_optimizer.load_state_dict(checkpoint['D_optimizer_state_dict'])
-    except:
+    # Else, if we know it is a complete model (and not just state_dict)
+    elif sagan_obj.state_dict_or_model == 'model':
         sagan_obj.start = checkpoint['step'] + 1
         sagan_obj.G = torch.load(checkpoint['G']).to(sagan_obj.device)
         sagan_obj.G_optimizer = torch.load(checkpoint['G_optimizer'])
         sagan_obj.D = torch.load(checkpoint['D']).to(sagan_obj.device)
         sagan_obj.D_optimizer = torch.load(checkpoint['D_optimizer'])
+    # Else try for complete model
+    else:
+        try:
+            sagan_obj.start = checkpoint['step'] + 1
+            sagan_obj.G.load_state_dict(checkpoint['G_state_dict'])
+            sagan_obj.G_optimizer.load_state_dict(checkpoint['G_optimizer_state_dict'])
+            sagan_obj.D.load_state_dict(checkpoint['D_state_dict'])
+            sagan_obj.D_optimizer.load_state_dict(checkpoint['D_optimizer_state_dict'])
+        except:
+            sagan_obj.start = checkpoint['step'] + 1
+            sagan_obj.G = torch.load(checkpoint['G']).to(sagan_obj.device)
+            sagan_obj.G_optimizer = torch.load(checkpoint['G_optimizer'])
+            sagan_obj.D = torch.load(checkpoint['D']).to(sagan_obj.device)
+            sagan_obj.D_optimizer = torch.load(checkpoint['D_optimizer'])
+
+
+def check_for_CUDA(sagan_obj):
+    if not sagan_obj.disable_cuda and torch.cuda.is_available():
+        print("CUDA is available!")
+        sagan_obj.device = torch.device('cuda')
+    else:
+        print("Cuda is NOT available, running on CPU.")
+        sagan_obj.device = torch.device('cpu')
+
+    if torch.cuda.is_available() and sagan_obj.disable_cuda:
+        print("WARNING: You have a CUDA device, so you should probably run without --disable_cuda")
+
