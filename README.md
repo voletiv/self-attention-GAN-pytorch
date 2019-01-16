@@ -25,3 +25,11 @@ $ python train.py --data_path 'a/b/c' --save_path 'o/p/q' --batch_size 64 --imsi
 Model training will be recorded in a new folder inside `--save_path` with the name `<timestamp>_<name>_<basename of data_path>`.
 
 By default, model weights are saved in a subfolder called `weights`, and train & validation samples during training in a subfolder called `samples` (can be changed in `parameters.py`).
+
+@article{Zhang2018SelfAttentionGA,
+  title={Self-Attention Generative Adversarial Networks},
+  author={Han Zhang and Ian J. Goodfellow and Dimitris N. Metaxas and Augustus Odena},
+  journal={CoRR},
+  year={2018},
+  volume={abs/1805.08318}
+}
