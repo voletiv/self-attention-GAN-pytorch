@@ -2,7 +2,7 @@
 
 This is an almost exact replica in PyTorch of the Tensorflow version of [SAGAN](https://arxiv.org/abs/1805.08318) released by Google Brain [[repo](https://github.com/brain-research/self-attention-gan)] in August 2018.
 
-Code is inspired from [repo](https://github.com/heykeetae/Self-Attention-GAN), but follows the details of Google Brain's [repo](https://github.com/brain-research/self-attention-gan)).
+Code structure is inspired from [repo](https://github.com/heykeetae/Self-Attention-GAN), but follows the details of Google Brain's [repo](https://github.com/brain-research/self-attention-gan).
 
 # Self-Attention GAN
 **[Han Zhang, Ian Goodfellow, Dimitris Metaxas and Augustus Odena, "Self-Attention Generative Adversarial Networks." arXiv preprint arXiv:1805.08318 (2018)](https://arxiv.org/abs/1805.08318).**
@@ -36,9 +36,9 @@ Model training will be recorded in a new folder inside `--save_path` with the na
 By default, model weights are saved in a subfolder called `weights`, and train & validation samples during training in a subfolder called `samples` (can be changed in `parameters.py`).
 
 @article{Zhang2018SelfAttentionGA,
-  title={Self-Attention Generative Adversarial Networks},
-  author={Han Zhang and Ian J. Goodfellow and Dimitris N. Metaxas and Augustus Odena},
-  journal={CoRR},
-  year={2018},
-  volume={abs/1805.08318}
+    title={Self-Attention Generative Adversarial Networks},
+    author={Han Zhang and Ian J. Goodfellow and Dimitris N. Metaxas and Augustus Odena},
+    journal={CoRR},
+    year={2018},
+    volume={abs/1805.08318}
 }
