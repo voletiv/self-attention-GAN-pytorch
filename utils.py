@@ -51,24 +51,27 @@ def make_transform(resize=True, imsize=128, centercrop=False, centercrop_size=12
         return transform
 
 
-def make_dataloader(batch_size, dataset, data_path, shuffle=True, num_workers=4, drop_last=True,
+def make_dataloader(batch_size, dataset_type, data_path, shuffle=True, num_workers=4, drop_last=True,
                     resize=True, imsize=128, centercrop=False, centercrop_size=128, totensor=True, normalize=True):
     # Make transform
     transform = make_transform(resize=resize, imsize=imsize,
                                centercrop=centercrop, centercrop_size=centercrop_size,
                                totensor=totensor, normalize=normalize)
     # Make dataset
-    if dataset in ['folder', 'imagenet', 'lfw']:
+    if dataset_type in ['folder', 'imagenet', 'lfw']:
         # folder dataset
+        assert os.path.exists(data_path), "data_path does not exist! Given: " + data_path
         dataset = dset.ImageFolder(root=data_path, transform=transform)
         num_of_classes = len(os.listdir(data_path))
-    elif opt.dataset == 'lsun':
+    elif dataset_type == 'lsun':
+        assert os.path.exists(data_path), "data_path does not exist! Given: " + data_path
         dataset = dset.LSUN(root=data_path, classes=['bedroom_train'], transform=transform)
         num_of_classes = 1
-    elif opt.dataset == 'cifar10':
+    elif dataset_type == 'cifar10':
+        assert os.path.exists(data_path), "data_path does not exist! Given: " + data_path
         dataset = dset.CIFAR10(root=data_path, download=True, transform=transform)
         num_of_classes = 10
-    elif opt.dataset == 'fake':
+    elif dataset_type == 'fake':
         dataset = dset.FakeData(image_size=(3, centercrop_size, centercrop_size), transform=transforms.ToTensor())
         num_of_classes = 10
     assert dataset
@@ -158,28 +161,44 @@ def make_plots(G_losses, D_losses, D_losses_real, D_losses_fake, D_xs, D_Gz_trai
     plt.close()
 
 
-def save_ckpt(trainer, final=False):
+def save_ckpt(sagan_obj, final=False):
     if not final:
         torch.save({
-                    'step': trainer.step,
-                    'G_state_dict': trainer.G.state_dict(),
-                    'G_optimizer_state_dict': trainer.G_optimizer.state_dict(),
-                    'D_state_dict': trainer.D.state_dict(),
-                    'D_optimizer_state_dict': trainer.D_optimizer.state_dict(),
-                    }, os.path.join(trainer.model_weights_path, 'ckpt_{:07d}.pth'.format(trainer.step)))
+                    'step': sagan_obj.step,
+                    'G_state_dict': sagan_obj.G.state_dict(),
+                    'G_optimizer_state_dict': sagan_obj.G_optimizer.state_dict(),
+                    'D_state_dict': sagan_obj.D.state_dict(),
+                    'D_optimizer_state_dict': sagan_obj.D_optimizer.state_dict(),
+                    }, os.path.join(sagan_obj.model_weights_path, 'ckpt_{:07d}.pth'.format(sagan_obj.step)))
     else:
         # Save final
         torch.save({
-                    'step': trainer.step,
-                    'G_state_dict': trainer.G.state_dict(),
-                    'G_optimizer_state_dict': trainer.G_optimizer.state_dict(),
-                    'D_state_dict': trainer.D.state_dict(),
-                    'D_optimizer_state_dict': trainer.D_optimizer.state_dict(),
-                    }, os.path.join(trainer.model_weights_path, '{}_final_state_dict_ckpt_{}.pth'.format(trainer.name, trainer.step)))
+                    'step': sagan_obj.step,
+                    'G_state_dict': sagan_obj.G.state_dict(),
+                    'G_optimizer_state_dict': sagan_obj.G_optimizer.state_dict(),
+                    'D_state_dict': sagan_obj.D.state_dict(),
+                    'D_optimizer_state_dict': sagan_obj.D_optimizer.state_dict(),
+                    }, os.path.join(sagan_obj.model_weights_path, '{}_final_state_dict_ckpt_{}.pth'.format(sagan_obj.name, sagan_obj.step)))
         torch.save({
-                    'step': trainer.step,
-                    'G': trainer.G,
-                    'G_optimizer': trainer.G_optimizer,
-                    'D': trainer.D,
-                    'D_optimizer': trainer.D_optimizer,
-                    }, os.path.join(trainer.model_weights_path, '{}_final_model_ckpt_{}.pth'.format(trainer.name, trainer.step)))
+                    'step': sagan_obj.step,
+                    'G': sagan_obj.G,
+                    'G_optimizer': sagan_obj.G_optimizer,
+                    'D': sagan_obj.D,
+                    'D_optimizer': sagan_obj.D_optimizer,
+                    }, os.path.join(sagan_obj.model_weights_path, '{}_final_model_ckpt_{}.pth'.format(sagan_obj.name, sagan_obj.step)))
+
+
+def load_pretrained_model(sagan_obj):
+    checkpoint = torch.load(sagan_obj.pretrained_model)
+    try:
+        sagan_obj.start = checkpoint['step'] + 1
+        sagan_obj.G.load_state_dict(checkpoint['G_state_dict'])
+        sagan_obj.G_optimizer.load_state_dict(checkpoint['G_optimizer_state_dict'])
+        sagan_obj.D.load_state_dict(checkpoint['D_state_dict'])
+        sagan_obj.D_optimizer.load_state_dict(checkpoint['D_optimizer_state_dict'])
+    except:
+        sagan_obj.start = checkpoint['step'] + 1
+        sagan_obj.G = torch.load(checkpoint['G']).to(sagan_obj.device)
+        sagan_obj.G_optimizer = torch.load(checkpoint['G_optimizer'])
+        sagan_obj.D = torch.load(checkpoint['D']).to(sagan_obj.device)
+        sagan_obj.D_optimizer = torch.load(checkpoint['D_optimizer'])

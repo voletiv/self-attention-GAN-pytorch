@@ -9,7 +9,7 @@ def get_parameters():
 
     # Images data path & Output path
     parser.add_argument('--dataset', type=str, default='folder', help="cifar10 | fake | folder | imagenet | lfw | lsun")
-    parser.add_argument('--data_path', type=str, required=True, help='Path to root of image data (saved in dirs of classes)')
+    parser.add_argument('--data_path', type=str, default='', help='Path to root of image data (saved in dirs of classes)')
     parser.add_argument('--save_path', type=str, default='./sagan_models')
 
     # Training settings

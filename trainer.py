@@ -110,7 +110,7 @@ class Trainer(object):
 
         # Start with pretrained model
         if self.pretrained_model:
-            self.load_pretrained_model()
+            utils.load_pretrained_model(self)
 
         if self.adv_loss == 'dcgan':
             self.criterion = nn.BCELoss()
@@ -324,21 +324,6 @@ class Trainer(object):
 
         real_images, real_labels = real_images.to(self.device), real_labels.to(self.device)
         return real_images, real_labels
-
-    def load_pretrained_model(self):
-        checkpoint = torch.load(self.pretrained_model)
-        try:
-            self.start = checkpoint['step'] + 1
-            self.G.load_state_dict(checkpoint['G_state_dict'])
-            self.G_optimizer.load_state_dict(checkpoint['G_optimizer_state_dict'])
-            self.D.load_state_dict(checkpoint['D_state_dict'])
-            self.D_optimizer.load_state_dict(checkpoint['D_optimizer_state_dict'])
-        except:
-            self.start = checkpoint['step'] + 1
-            self.G = torch.load(checkpoint['G']).to(self.device)
-            self.G_optimizer = torch.load(checkpoint['G_optimizer'])
-            self.D = torch.load(checkpoint['D']).to(self.device)
-            self.D_optimizer = torch.load(checkpoint['D_optimizer'])
 
     def compute_gradient_penalty(self, real_images, real_labels, fake_images):
         # Compute gradient penalty
