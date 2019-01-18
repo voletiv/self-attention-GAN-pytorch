@@ -52,11 +52,11 @@ def make_transform(resize=True, imsize=128, centercrop=False, centercrop_size=12
 
 
 def make_dataloader(batch_size, dataset_type, data_path, shuffle=True, num_workers=4, drop_last=True,
-                    resize=True, imsize=128, centercrop=False, centercrop_size=128, totensor=True, normalize=True):
+                    resize=True, imsize=128, centercrop=False, centercrop_size=128, totensor=True, tanh_scale=True, normalize=False):
     # Make transform
     transform = make_transform(resize=resize, imsize=imsize,
                                centercrop=centercrop, centercrop_size=centercrop_size,
-                               totensor=totensor, normalize=normalize)
+                               totensor=totensor, tanh_scale=tanh_scale, normalize=normalize)
     # Make dataset
     if dataset_type in ['folder', 'imagenet', 'lfw']:
         # folder dataset
@@ -162,16 +162,16 @@ def make_plots(G_losses, D_losses, D_losses_real, D_losses_fake, D_xs, D_Gz_trai
     plt.close()
 
 
-def save_ckpt(sagan_obj, final=False):
-    if not final:
+def save_ckpt(sagan_obj, model=False, final=False):
+    if model:
         torch.save({
                     'step': sagan_obj.step,
-                    'G_state_dict': sagan_obj.G.state_dict(),
-                    'G_optimizer_state_dict': sagan_obj.G_optimizer.state_dict(),
-                    'D_state_dict': sagan_obj.D.state_dict(),
-                    'D_optimizer_state_dict': sagan_obj.D_optimizer.state_dict(),
-                    }, os.path.join(sagan_obj.model_weights_path, 'ckpt_{:07d}.pth'.format(sagan_obj.step)))
-    else:
+                    'G': sagan_obj.G,
+                    'G_optimizer': sagan_obj.G_optimizer,
+                    'D': sagan_obj.D,
+                    'D_optimizer': sagan_obj.D_optimizer,
+                    }, os.path.join(sagan_obj.model_weights_path, '{}_model_ckpt_{}.pth'.format(sagan_obj.name, sagan_obj.step)))
+    elif final:
         # Save final
         torch.save({
                     'step': sagan_obj.step,
@@ -187,6 +187,14 @@ def save_ckpt(sagan_obj, final=False):
                     'D': sagan_obj.D,
                     'D_optimizer': sagan_obj.D_optimizer,
                     }, os.path.join(sagan_obj.model_weights_path, '{}_final_model_ckpt_{}.pth'.format(sagan_obj.name, sagan_obj.step)))
+    else:
+        torch.save({
+                    'step': sagan_obj.step,
+                    'G_state_dict': sagan_obj.G.state_dict(),
+                    'G_optimizer_state_dict': sagan_obj.G_optimizer.state_dict(),
+                    'D_state_dict': sagan_obj.D.state_dict(),
+                    'D_optimizer_state_dict': sagan_obj.D_optimizer.state_dict(),
+                    }, os.path.join(sagan_obj.model_weights_path, 'ckpt_{:07d}.pth'.format(sagan_obj.step)))
 
 
 def load_pretrained_model(sagan_obj):
@@ -233,4 +241,3 @@ def check_for_CUDA(sagan_obj):
 
     if torch.cuda.is_available() and sagan_obj.disable_cuda:
         print("WARNING: You have a CUDA device, so you should probably run without --disable_cuda")
-

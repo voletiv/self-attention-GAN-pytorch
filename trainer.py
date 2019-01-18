@@ -260,7 +260,7 @@ class Trainer(object):
                 curr_time = time.time()
                 curr_time_str = datetime.datetime.fromtimestamp(curr_time).strftime('%Y-%m-%d %H:%M:%S')
                 elapsed = str(datetime.timedelta(seconds=(curr_time - start_time)))
-                log = ("[{}] : Elapsed [{}], Iter [{} / {}], G_loss: {:.4f}, D_loss: {:.4f}, D_loss_real: {:.4f}, D_loss_fake: {:.4f}, D(x): {:.4f}, D(G(z))_trainD: {:.4f}, D(G(z))_trainG: {:.4f}".
+                log = ("[{}] : Elapsed [{}], Iter [{} / {}], G_loss: {:.4f}, D_loss: {:.4f}, D_loss_real: {:.4f}, D_loss_fake: {:.4f}, D(x): {:.4f}, D(G(z))_trainD: {:.4f}, D(G(z))_trainG: {:.4f}\n".
                        format(curr_time_str, elapsed, self.step, self.total_step,
                               G_losses[-1], D_losses[-1], D_losses_real[-1], D_losses_fake[-1],
                               D_xs[-1], D_Gz_trainDs[-1], D_Gz_trainGs[-1]))
