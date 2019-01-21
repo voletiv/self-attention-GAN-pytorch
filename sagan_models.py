@@ -142,18 +142,19 @@ class Generator(nn.Module):
         self.apply(init_weights)
 
     def forward(self, z, labels):
-        act0 = self.snlinear0(z)
-        act0 = act0.view(-1, self.g_conv_dim*16, 4, 4)
-        act1 = self.block1(act0, labels)
-        act2 = self.block2(act1, labels)
-        act3 = self.block3(act2, labels)
-        act3 = self.self_attn(act3)
-        act4 = self.block4(act3, labels)
-        act5 = self.block5(act4, labels)
-        act5 = self.bn(act5)
-        act5 = self.relu(act5)
-        act6 = self.snconv2d1(act5)
-        act6 = self.tanh(act6)
+        # n x z_dim
+        act0 = self.snlinear0(z)            # n x g_conv_dim*16*4*4
+        act0 = act0.view(-1, self.g_conv_dim*16, 4, 4) # n x g_conv_dim*16 x 4 x 4
+        act1 = self.block1(act0, labels)    # n x g_conv_dim*16 x 8 x 8
+        act2 = self.block2(act1, labels)    # n x g_conv_dim*8 x 16 x 16
+        act3 = self.block3(act2, labels)    # n x g_conv_dim*4 x 32 x 32
+        act3 = self.self_attn(act3)         # n x g_conv_dim*4 x 32 x 32
+        act4 = self.block4(act3, labels)    # n x g_conv_dim*2 x 64 x 64
+        act5 = self.block5(act4, labels)    # n x g_conv_dim  x 128 x 128
+        act5 = self.bn(act5)                # n x g_conv_dim  x 128 x 128
+        act5 = self.relu(act5)              # n x g_conv_dim  x 128 x 128
+        act6 = self.snconv2d1(act5)         # n x 3 x 128 x 128
+        act6 = self.tanh(act6)              # n x 3 x 128 x 128
         return act6
 
 
@@ -235,20 +236,21 @@ class Discriminator(nn.Module):
         xavier_uniform_(self.sn_embedding1.weight)
 
     def forward(self, x, labels):
-        h0 = self.opt_block1(x)
-        h1 = self.block1(h0)
-        h1 = self.self_attn(h1)
-        h2 = self.block2(h1)
-        h3 = self.block3(h2)
-        h4 = self.block4(h3)
-        h5 = self.block5(h4, downsample=False)
-        h5 = self.relu(h5)
-        h6 = torch.sum(h5, dim=[2,3])
-        output1 = torch.squeeze(self.snlinear1(h6))
+        # n x 3 x 128 x 128
+        h0 = self.opt_block1(x) # n x d_conv_dim   x 64 x 64
+        h1 = self.block1(h0)    # n x d_conv_dim*2 x 32 x 32
+        h1 = self.self_attn(h1) # n x d_conv_dim*2 x 32 x 32
+        h2 = self.block2(h1)    # n x d_conv_dim*4 x 16 x 16
+        h3 = self.block3(h2)    # n x d_conv_dim*8 x  8 x  8
+        h4 = self.block4(h3)    # n x d_conv_dim*16 x 4 x  4
+        h5 = self.block5(h4, downsample=False)  # n x d_conv_dim*16 x 4 x 4
+        h5 = self.relu(h5)              # n x d_conv_dim*16 x 4 x 4
+        h6 = torch.sum(h5, dim=[2,3])   # n x d_conv_dim*16
+        output1 = torch.squeeze(self.snlinear1(h6)) # n x 1
         # Projection
-        h_labels = self.sn_embedding1(labels)
-        proj = torch.mul(h6, h_labels)
-        output2 = torch.sum(proj, dim=[1])
+        h_labels = self.sn_embedding1(labels)   # n x d_conv_dim*16
+        proj = torch.mul(h6, h_labels)          # n x d_conv_dim*16
+        output2 = torch.sum(proj, dim=[1])      # n x 1
         # Out
-        output = output1 + output2
+        output = output1 + output2              # n x 1
         return output
