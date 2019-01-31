@@ -62,7 +62,7 @@ def make_dataloader(batch_size, dataset_type, data_path, shuffle=True, num_worke
         # folder dataset
         assert os.path.exists(data_path), "data_path does not exist! Given: " + data_path
         dataset = dset.ImageFolder(root=data_path, transform=transform)
-        num_of_classes = len(os.listdir(data_path))
+        num_of_classes = sum([1 if os.path.isdir(os.path.join(data_path, i)) else 0 for i in os.listdir(data_path)])
     elif dataset_type == 'lsun':
         assert os.path.exists(data_path), "data_path does not exist! Given: " + data_path
         dataset = dset.LSUN(root=data_path, classes=['bedroom_train'], transform=transform)
