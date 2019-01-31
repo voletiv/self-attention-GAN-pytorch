@@ -37,12 +37,14 @@ class Trainer(object):
         self.start = 0 # Unless using pre-trained model
 
         # Image transforms
-        self.shuffle = not config.dont_shuffle
-        self.drop_last = not config.dont_drop_last
-        self.resize = not config.dont_resize
+        self.shuffle = config.shuffle
+        self.drop_last = config.drop_last
+        self.resize = config.resize
         self.imsize = config.imsize
         self.centercrop = config.centercrop
         self.centercrop_size = config.centercrop_size
+        self.tanh_scale = config.tanh_scale
+        self.normalize = config.normalize
 
         # Step size
         self.log_step = config.log_step

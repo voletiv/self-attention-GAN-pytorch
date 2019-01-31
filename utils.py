@@ -34,7 +34,9 @@ def copy_scripts(dst):
         shutil.copy(file, dst)
 
 
-def make_transform(resize=True, imsize=128, centercrop=False, centercrop_size=128, totensor=True, tanh_scale=True, normalize=False):
+def make_transform(resize=True, imsize=128, centercrop=False, centercrop_size=128,
+                   totensor=True, tanh_scale=True,
+                   normalize=False, norm_mean=(0.5, 0.5, 0.5), norm_std=(0.5, 0.5, 0.5)):
         options = []
         if resize:
             options.append(transforms.Resize((imsize, imsize)))
@@ -46,17 +48,19 @@ def make_transform(resize=True, imsize=128, centercrop=False, centercrop_size=12
             f = lambda x: x*2 - 1
             options.append(transforms.Lambda(f))
         if normalize:
-            options.append(transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)))
+            options.append(transforms.Normalize(norm_mean, norm_std))
         transform = transforms.Compose(options)
         return transform
 
 
 def make_dataloader(batch_size, dataset_type, data_path, shuffle=True, num_workers=4, drop_last=True,
-                    resize=True, imsize=128, centercrop=False, centercrop_size=128, totensor=True, tanh_scale=True, normalize=False):
+                    resize=True, imsize=128, centercrop=False, centercrop_size=128, totensor=True, tanh_scale=True,
+                    normalize=False, norm_mean=(0.5, 0.5, 0.5), norm_std=(0.5, 0.5, 0.5)):
     # Make transform
     transform = make_transform(resize=resize, imsize=imsize,
                                centercrop=centercrop, centercrop_size=centercrop_size,
-                               totensor=totensor, tanh_scale=tanh_scale, normalize=normalize)
+                               totensor=totensor, tanh_scale=tanh_scale,
+                               normalize=normalize, norm_mean=norm_mean, norm_std=norm_std)
     # Make dataset
     if dataset_type in ['folder', 'imagenet', 'lfw']:
         # folder dataset

@@ -42,6 +42,8 @@ def get_parameters():
     parser.add_argument('--imsize', type=int, default=128)
     parser.add_argument('--centercrop', action='store_true', help="Whether to center crop images")
     parser.add_argument('--centercrop_size', type=int, default=128)
+    parser.add_argument('--dont_tanh_scale', action='store_true', help="Whether to scale image values to -1->1")
+    parser.add_argument('--normalize', action='store_true', help="Whether to normalize image values")
 
     # Step sizes
     parser.add_argument('--log_step', type=int, default=10)
@@ -70,6 +72,11 @@ def get_parameters():
     parser.add_argument('--name', type=str, default='sagan')
 
     args = parser.parse_args()
+
+    args.shuffle = not args.dont_shuffle
+    args.drop_last = not args.dont_drop_last
+    args.resize = not args.dont_resize
+    args.tanh_scale = not args.dont_tanh_scale
 
     args.name = '{0:%Y%m%d_%H%M%S}_{1}_{2}'.format(datetime.datetime.now(), args.name, os.path.basename(args.data_path))
 
