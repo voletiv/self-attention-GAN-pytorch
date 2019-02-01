@@ -66,20 +66,17 @@ def make_dataloader(batch_size, dataset_type, data_path, shuffle=True, drop_last
         # folder dataset
         assert os.path.exists(data_path), "data_path does not exist! Given: " + data_path
         dataset = dset.ImageFolder(root=data_path, transform=transform)
-        num_of_classes = sum([1 if os.path.isdir(os.path.join(data_path, i)) else 0 for i in os.listdir(data_path)])
     elif dataset_type == 'lsun':
         assert os.path.exists(data_path), "data_path does not exist! Given: " + data_path
         dataset = dset.LSUN(root=data_path, classes=['bedroom_train'], transform=transform)
-        num_of_classes = 1
     elif dataset_type == 'cifar10':
         assert os.path.exists(data_path), "data_path does not exist! Given: " + data_path
         dataset = dset.CIFAR10(root=data_path, download=True, transform=transform)
-        num_of_classes = 10
     elif dataset_type == 'fake':
         dataset = dset.FakeData(image_size=(3, centercrop_size, centercrop_size), transform=transforms.ToTensor())
-        num_of_classes = 10
     assert dataset
-    print("Data found! # of classes =", num_of_classes, ", # of images =", len(dataset))
+    num_of_classes = len(dataset.classes)
+    print("Data found!  # of images =", len(dataset), ", # of classes =", num_of_classes, ", classes:", dataset.classes)
     # Make dataloader from dataset
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, drop_last=drop_last, **dataloader_args)
     return dataloader, num_of_classes
