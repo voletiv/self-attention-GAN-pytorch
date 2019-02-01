@@ -60,7 +60,7 @@ class Trainer(object):
         self.manual_seed = config.manual_seed
         self.disable_cuda = config.disable_cuda
         self.parallel = config.parallel
-        self.num_workers = config.num_workers
+        self.dataloader_args = config.dataloader_args
 
         # Output paths
         self.model_weights_path = os.path.join(self.save_path, config.model_weights_dir)
@@ -85,16 +85,16 @@ class Trainer(object):
         utils.write_config_to_file(config, self.save_path)
         utils.copy_scripts(self.save_path)
 
+        # Check for CUDA
+        utils.check_for_CUDA(self)
+
         # Make dataloader
         self.dataloader, self.num_of_classes = utils.make_dataloader(self.batch_size, self.dataset, self.data_path,
-                                                                     self.shuffle, self.num_workers, self.drop_last,
+                                                                     self.shuffle, self.drop_last, self.dataloader_args,
                                                                      self.resize, self.imsize, self.centercrop, self.centercrop_size)
 
         # Data iterator
         self.data_iter = iter(self.dataloader)
-
-        # Check for CUDA
-        utils.check_for_CUDA(self)
 
         # Build G and D
         self.build_models()

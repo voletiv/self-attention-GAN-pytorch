@@ -78,6 +78,8 @@ def get_parameters():
     args.resize = not args.dont_resize
     args.tanh_scale = not args.dont_tanh_scale
 
+    args.dataloader_args = {'num_workers':args.num_workers}
+
     args.name = '{0:%Y%m%d_%H%M%S}_{1}_{2}'.format(datetime.datetime.now(), args.name, os.path.basename(args.data_path))
 
     return args

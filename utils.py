@@ -53,7 +53,7 @@ def make_transform(resize=True, imsize=128, centercrop=False, centercrop_size=12
         return transform
 
 
-def make_dataloader(batch_size, dataset_type, data_path, shuffle=True, num_workers=4, drop_last=True,
+def make_dataloader(batch_size, dataset_type, data_path, shuffle=True, drop_last=True, dataloader_args={},
                     resize=True, imsize=128, centercrop=False, centercrop_size=128, totensor=True, tanh_scale=True,
                     normalize=False, norm_mean=(0.5, 0.5, 0.5), norm_std=(0.5, 0.5, 0.5)):
     # Make transform
@@ -81,7 +81,7 @@ def make_dataloader(batch_size, dataset_type, data_path, shuffle=True, num_worke
     assert dataset
     print("Data found! # of classes =", num_of_classes, ", # of images =", len(dataset))
     # Make dataloader from dataset
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, drop_last=drop_last)
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, drop_last=drop_last, **dataloader_args)
     return dataloader, num_of_classes
 
 
@@ -239,6 +239,7 @@ def check_for_CUDA(sagan_obj):
     if not sagan_obj.disable_cuda and torch.cuda.is_available():
         print("CUDA is available!")
         sagan_obj.device = torch.device('cuda')
+        sagan_obj.dataloader_args['pin_memory'] = True
     else:
         print("Cuda is NOT available, running on CPU.")
         sagan_obj.device = torch.device('cpu')
