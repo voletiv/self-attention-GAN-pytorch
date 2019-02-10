@@ -274,7 +274,9 @@ class Trainer(object):
 
             # Sample images
             if self.step % self.sample_step == 0:
+                self.G.eval()
                 fake_images = self.G(fixed_noise, fixed_labels)
+                self.G.train()
                 sample_images = utils.denorm(fake_images.detach()[:self.save_n_images])
                 # Save batch images
                 vutils.save_image(sample_images, os.path.join(self.sample_path, 'fake_{:05d}.png'.format(self.step)))
