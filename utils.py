@@ -164,38 +164,79 @@ def make_plots(G_losses, D_losses, D_losses_real, D_losses_fake, D_xs, D_Gz_trai
 
 
 def save_ckpt(sagan_obj, model=False, final=False):
+    print("Saving ckpt...")
     if model:
-        torch.save({
-                    'step': sagan_obj.step,
-                    'G': sagan_obj.G,
-                    'G_optimizer': sagan_obj.G_optimizer,
-                    'D': sagan_obj.D,
-                    'D_optimizer': sagan_obj.D_optimizer,
-                    }, os.path.join(sagan_obj.model_weights_path, '{}_model_ckpt_{}.pth'.format(sagan_obj.name, sagan_obj.step)))
+        # Save full model (and not just state_dict)
+        try:
+            # In case DataParallel is used
+            torch.save({
+                        'step': sagan_obj.step,
+                        'G': sagan_obj.G.module,
+                        'G_optimizer': sagan_obj.G_optimizer,
+                        'D': sagan_obj.D.module,
+                        'D_optimizer': sagan_obj.D_optimizer,
+                        }, os.path.join(sagan_obj.model_weights_path, '{}_model_ckpt_{}.pth'.format(sagan_obj.name, sagan_obj.step)))
+        except AttributeError:
+            torch.save({
+                        'step': sagan_obj.step,
+                        'G': sagan_obj.G,
+                        'G_optimizer': sagan_obj.G_optimizer,
+                        'D': sagan_obj.D,
+                        'D_optimizer': sagan_obj.D_optimizer,
+                        }, os.path.join(sagan_obj.model_weights_path, '{}_model_ckpt_{}.pth'.format(sagan_obj.name, sagan_obj.step)))
     elif final:
-        # Save final
-        torch.save({
-                    'step': sagan_obj.step,
-                    'G_state_dict': sagan_obj.G.state_dict(),
-                    'G_optimizer_state_dict': sagan_obj.G_optimizer.state_dict(),
-                    'D_state_dict': sagan_obj.D.state_dict(),
-                    'D_optimizer_state_dict': sagan_obj.D_optimizer.state_dict(),
-                    }, os.path.join(sagan_obj.model_weights_path, '{}_final_state_dict_ckpt_{}.pth'.format(sagan_obj.name, sagan_obj.step)))
-        torch.save({
-                    'step': sagan_obj.step,
-                    'G': sagan_obj.G,
-                    'G_optimizer': sagan_obj.G_optimizer,
-                    'D': sagan_obj.D,
-                    'D_optimizer': sagan_obj.D_optimizer,
-                    }, os.path.join(sagan_obj.model_weights_path, '{}_final_model_ckpt_{}.pth'.format(sagan_obj.name, sagan_obj.step)))
+        # Save final - both model and state_dict
+        try:
+            # In case DataParallel is used
+            torch.save({
+                        'step': sagan_obj.step,
+                        'G_state_dict': sagan_obj.G.module.state_dict(),
+                        'G_optimizer_state_dict': sagan_obj.G_optimizer.state_dict(),
+                        'D_state_dict': sagan_obj.D.module.state_dict(),
+                        'D_optimizer_state_dict': sagan_obj.D_optimizer.state_dict(),
+                        }, os.path.join(sagan_obj.model_weights_path, '{}_final_state_dict_ckpt_{}.pth'.format(sagan_obj.name, sagan_obj.step)))
+            torch.save({
+                        'step': sagan_obj.step,
+                        'G': sagan_obj.G,
+                        'G_optimizer': sagan_obj.G_optimizer,
+                        'D': sagan_obj.D,
+                        'D_optimizer': sagan_obj.D_optimizer,
+                        }, os.path.join(sagan_obj.model_weights_path, '{}_final_model_ckpt_{}.pth'.format(sagan_obj.name, sagan_obj.step)))
+
+        except AttributeError:
+            torch.save({
+                        'step': sagan_obj.step,
+                        'G_state_dict': sagan_obj.G.state_dict(),
+                        'G_optimizer_state_dict': sagan_obj.G_optimizer.state_dict(),
+                        'D_state_dict': sagan_obj.D.state_dict(),
+                        'D_optimizer_state_dict': sagan_obj.D_optimizer.state_dict(),
+                        }, os.path.join(sagan_obj.model_weights_path, '{}_final_state_dict_ckpt_{}.pth'.format(sagan_obj.name, sagan_obj.step)))
+            torch.save({
+                        'step': sagan_obj.step,
+                        'G': sagan_obj.G,
+                        'G_optimizer': sagan_obj.G_optimizer,
+                        'D': sagan_obj.D,
+                        'D_optimizer': sagan_obj.D_optimizer,
+                        }, os.path.join(sagan_obj.model_weights_path, '{}_final_model_ckpt_{}.pth'.format(sagan_obj.name, sagan_obj.step)))
     else:
-        torch.save({
-                    'step': sagan_obj.step,
-                    'G_state_dict': sagan_obj.G.state_dict(),
-                    'G_optimizer_state_dict': sagan_obj.G_optimizer.state_dict(),
-                    'D_state_dict': sagan_obj.D.state_dict(),
-                    'D_optimizer_state_dict': sagan_obj.D_optimizer.state_dict(),
-                    }, os.path.join(sagan_obj.model_weights_path, 'ckpt_{:07d}.pth'.format(sagan_obj.step)))
+        # Save state_dict
+        try:
+            # In case DataParallel is used
+            torch.save({
+                        'step': sagan_obj.step,
+                        'G_state_dict': sagan_obj.G.module.state_dict(),
+                        'G_optimizer_state_dict': sagan_obj.G_optimizer.state_dict(),
+                        'D_state_dict': sagan_obj.D.module.state_dict(),
+                        'D_optimizer_state_dict': sagan_obj.D_optimizer.state_dict(),
+                        }, os.path.join(sagan_obj.model_weights_path, 'ckpt_{:07d}.pth'.format(sagan_obj.step)))
+        except AttributeError:
+            torch.save({
+                        'step': sagan_obj.step,
+                        'G_state_dict': sagan_obj.G.state_dict(),
+                        'G_optimizer_state_dict': sagan_obj.G_optimizer.state_dict(),
+                        'D_state_dict': sagan_obj.D.state_dict(),
+                        'D_optimizer_state_dict': sagan_obj.D_optimizer.state_dict(),
+                        }, os.path.join(sagan_obj.model_weights_path, 'ckpt_{:07d}.pth'.format(sagan_obj.step)))
 
 
 def load_pretrained_model(sagan_obj):

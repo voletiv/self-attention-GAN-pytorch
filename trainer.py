@@ -291,7 +291,7 @@ class Trainer(object):
     def build_models(self):
         self.G = Generator(self.z_dim, self.g_conv_dim, self.num_of_classes).to(self.device)
         self.D = Discriminator(self.d_conv_dim, self.num_of_classes).to(self.device)
-        if 'cuda' in self.device.type and self.parallel:
+        if 'cuda' in self.device.type and self.parallel and torch.cuda.device_count() > 1:
             self.G = nn.DataParallel(self.G)
             self.D = nn.DataParallel(self.D)
 
