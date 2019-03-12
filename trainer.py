@@ -110,55 +110,62 @@ class Trainer(object):
                 # Zero grad
                 self.reset_grad()
 
-                # TRAIN with REAL
+                # Accumulate losses for full batch_size
+                # while running GPU computations on only batch_size_in_gpu
+                for _ in range(self.config.batch_size//self.config.batch_size_in_gpu):
 
-                # Get real images & real labels
-                real_images, real_labels = self.get_real_samples()
+                    # TRAIN with REAL
 
-                # Get D output for real images & real labels
-                inst_noise = torch.normal(mean=inst_noise_mean, std=inst_noise_std).to(self.device)
-                d_out_real = self.D(real_images + inst_noise, real_labels)
+                    # Get real images & real labels
+                    real_images, real_labels = self.get_real_samples()
 
-                # Compute D loss with real images & real labels
-                if self.config.adv_loss == 'hinge':
-                    d_loss_real = torch.nn.ReLU()(ones - d_out_real).mean()
-                elif self.config.adv_loss == 'wgan_gp':
-                    d_loss_real = -d_out_real.mean()
-                else:
-                    label.fill_(1)
-                    d_loss_real = self.criterion(d_out_real, label)
+                    # Get D output for real images & real labels
+                    inst_noise = torch.normal(mean=inst_noise_mean, std=inst_noise_std).to(self.device)
+                    d_out_real = self.D(real_images + inst_noise, real_labels)
 
-                # Backward
-                d_loss_real.backward()
+                    # Compute D loss with real images & real labels
+                    if self.config.adv_loss == 'hinge':
+                        d_loss_real = torch.nn.ReLU()(ones - d_out_real).mean()
+                    elif self.config.adv_loss == 'wgan_gp':
+                        d_loss_real = -d_out_real.mean()
+                    else:
+                        label.fill_(1)
+                        d_loss_real = self.criterion(d_out_real, label)
 
-                # TRAIN with FAKE
+                    # Backward
+                    d_loss_real /= self.config.batch_size//self.config.batch_size_in_gpu
+                    d_loss_real.backward()
 
-                # Create random noise
-                z = torch.randn(self.config.batch_size_in_gpu, self.config.z_dim, device=self.device)
+                    # TRAIN with FAKE
 
-                # Generate fake images for same real labels
-                fake_images = self.G(z, real_labels)
+                    # Create random noise
+                    z = torch.randn(self.config.batch_size_in_gpu, self.config.z_dim, device=self.device)
 
-                # Get D output for fake images & same real labels
-                inst_noise = torch.normal(mean=inst_noise_mean, std=inst_noise_std).to(self.device)
-                d_out_fake = self.D(fake_images.detach() + inst_noise, real_labels)
+                    # Generate fake images for same real labels
+                    fake_images = self.G(z, real_labels)
 
-                # Compute D loss with fake images & real labels
-                if self.config.adv_loss == 'hinge':
-                    d_loss_fake = torch.nn.ReLU()(ones + d_out_fake).mean()
-                elif self.config.adv_loss == 'dcgan':
-                    label.fill_(0)
-                    d_loss_fake = self.criterion(d_out_fake, label)
-                else:
-                    d_loss_fake = d_out_fake.mean()
+                    # Get D output for fake images & same real labels
+                    inst_noise = torch.normal(mean=inst_noise_mean, std=inst_noise_std).to(self.device)
+                    d_out_fake = self.D(fake_images.detach() + inst_noise, real_labels)
 
-                # Backward
-                d_loss_fake.backward()
+                    # Compute D loss with fake images & real labels
+                    if self.config.adv_loss == 'hinge':
+                        d_loss_fake = torch.nn.ReLU()(ones + d_out_fake).mean()
+                    elif self.config.adv_loss == 'dcgan':
+                        label.fill_(0)
+                        d_loss_fake = self.criterion(d_out_fake, label)
+                    else:
+                        d_loss_fake = d_out_fake.mean()
 
-                # If WGAN_GP, compute GP and add to D loss
-                if self.config.adv_loss == 'wgan_gp':
-                    d_loss_gp = self.config.lambda_gp * self.compute_gradient_penalty(real_images, real_labels, fake_images.detach())
-                    d_loss_gp.backward()
+                    # Backward
+                    d_loss_fake /= self.config.batch_size//self.config.batch_size_in_gpu
+                    d_loss_fake.backward()
+
+                    # If WGAN_GP, compute GP and add to D loss
+                    if self.config.adv_loss == 'wgan_gp':
+                        d_loss_gp = self.config.lambda_gp * self.compute_gradient_penalty(real_images, real_labels, fake_images.detach())
+                        d_loss_gp /= self.config.batch_size//self.config.batch_size_in_gpu
+                        d_loss_gp.backward()
 
                 # Optimize
                 self.D_optimizer.step()
@@ -170,28 +177,35 @@ class Trainer(object):
                 # Zero grad
                 self.reset_grad()
 
-                # Get real images & real labels (only need real labels)
-                real_images, real_labels = self.get_real_samples()
+                # Accumulate losses for full batch_size
+                # while running GPU computations on only batch_size_in_gpu
+                for _ in range(self.config.batch_size//self.config.batch_size_in_gpu):
 
-                # Create random noise
-                z = torch.randn(self.config.batch_size_in_gpu, self.config.z_dim).to(self.device)
+                    # Get real images & real labels (only need real labels)
+                    real_images, real_labels = self.get_real_samples()
 
-                # Generate fake images for same real labels
-                fake_images = self.G(z, real_labels)
+                    # Create random noise
+                    z = torch.randn(self.config.batch_size_in_gpu, self.config.z_dim).to(self.device)
 
-                # Get D output for fake images & same real labels
-                inst_noise = torch.normal(mean=inst_noise_mean, std=inst_noise_std).to(self.device)
-                g_out_fake = self.D(fake_images + inst_noise, real_labels)
+                    # Generate fake images for same real labels
+                    fake_images = self.G(z, real_labels)
 
-                # Compute G loss with fake images & real labels
-                if self.config.adv_loss == 'dcgan':
-                    label.fill_(1)
-                    g_loss = self.criterion(g_out_fake, label)
-                else:
-                    g_loss = -g_out_fake.mean()
+                    # Get D output for fake images & same real labels
+                    inst_noise = torch.normal(mean=inst_noise_mean, std=inst_noise_std).to(self.device)
+                    g_out_fake = self.D(fake_images + inst_noise, real_labels)
 
-                # Backward + Optimize
-                g_loss.backward()
+                    # Compute G loss with fake images & real labels
+                    if self.config.adv_loss == 'dcgan':
+                        label.fill_(1)
+                        g_loss = self.criterion(g_out_fake, label)
+                    else:
+                        g_loss = -g_out_fake.mean()
+
+                    # Backward
+                    g_loss /= self.config.batch_size//self.config.batch_size_in_gpu
+                    g_loss.backward()
+
+                # Optimize
                 self.G_optimizer.step()
 
             # Print out log info
