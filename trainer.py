@@ -18,80 +18,27 @@ class Trainer(object):
 
     def __init__(self, config):
 
-        # Images data path & Output path
-        self.dataset = config.dataset
-        self.data_path = config.data_path
-        self.save_path = os.path.join(config.save_path, config.name)
+        # Config
+        self.config = config
 
-        # Training settings
-        self.batch_size = config.batch_size
-        self.total_step = config.total_step
-        self.d_steps_per_iter = config.d_steps_per_iter
-        self.g_steps_per_iter = config.g_steps_per_iter
-        self.d_lr = config.d_lr
-        self.g_lr = config.g_lr
-        self.beta1 = config.beta1
-        self.beta2 = config.beta2
-        self.inst_noise_sigma = config.inst_noise_sigma
-        self.inst_noise_sigma_iters = config.inst_noise_sigma_iters
         self.start = 0 # Unless using pre-trained model
 
-        # Image transforms
-        self.shuffle = config.shuffle
-        self.drop_last = config.drop_last
-        self.resize = config.resize
-        self.imsize = config.imsize
-        self.centercrop = config.centercrop
-        self.centercrop_size = config.centercrop_size
-        self.tanh_scale = config.tanh_scale
-        self.normalize = config.normalize
-
-        # Step size
-        self.log_step = config.log_step
-        self.sample_step = config.sample_step
-        self.model_save_step = config.model_save_step
-        self.save_n_images = config.save_n_images
-        self.max_frames_per_gif = config.max_frames_per_gif
-
-        # Pretrained model
-        self.pretrained_model = config.pretrained_model
-
-        # Misc
-        self.manual_seed = config.manual_seed
-        self.disable_cuda = config.disable_cuda
-        self.parallel = config.parallel
-        self.dataloader_args = config.dataloader_args
-
-        # Output paths
-        self.model_weights_path = os.path.join(self.save_path, config.model_weights_dir)
-        self.sample_path = os.path.join(self.save_path, config.sample_dir)
-
-        # Model hyper-parameters
-        self.adv_loss = config.adv_loss
-        self.z_dim = config.z_dim
-        self.g_conv_dim = config.g_conv_dim
-        self.d_conv_dim = config.d_conv_dim
-        self.lambda_gp = config.lambda_gp
-
-        # Model name
-        self.name = config.name
-
         # Create directories if not exist
-        utils.make_folder(self.save_path)
-        utils.make_folder(self.model_weights_path)
-        utils.make_folder(self.sample_path)
+        utils.make_folder(self.config.save_path)
+        utils.make_folder(self.config.model_weights_path)
+        utils.make_folder(self.config.sample_images_path)
 
         # Copy files
-        utils.write_config_to_file(config, self.save_path)
-        utils.copy_scripts(self.save_path)
+        utils.write_config_to_file(self.config, self.config.save_path)
+        utils.copy_scripts(self.config.save_path)
 
         # Check for CUDA
         utils.check_for_CUDA(self)
 
         # Make dataloader
-        self.dataloader, self.num_of_classes = utils.make_dataloader(self.batch_size, self.dataset, self.data_path,
-                                                                     self.shuffle, self.drop_last, self.dataloader_args,
-                                                                     self.resize, self.imsize, self.centercrop, self.centercrop_size)
+        self.dataloader, self.num_of_classes = utils.make_dataloader(self.config.batch_size_in_gpu, self.config.dataset, self.config.data_path,
+                                                                     self.config.shuffle, self.config.drop_last, self.config.dataloader_args,
+                                                                     self.config.resize, self.config.imsize, self.config.centercrop, self.config.centercrop_size)
 
         # Data iterator
         self.data_iter = iter(self.dataloader)
@@ -100,18 +47,18 @@ class Trainer(object):
         self.build_models()
 
         # Start with pretrained model (if it exists)
-        if self.pretrained_model != '':
+        if self.config.pretrained_model != '':
             utils.load_pretrained_model(self)
 
-        if self.adv_loss == 'dcgan':
+        if self.config.adv_loss == 'dcgan':
             self.criterion = nn.BCELoss()
 
     def train(self):
 
         # Seed
-        np.random.seed(self.manual_seed)
-        random.seed(self.manual_seed)
-        torch.manual_seed(self.manual_seed)
+        np.random.seed(self.config.manual_seed)
+        random.seed(self.config.manual_seed)
+        torch.manual_seed(self.config.manual_seed)
 
         # For fast training
         cudnn.benchmark = True
@@ -121,18 +68,18 @@ class Trainer(object):
         self.D.train()
 
         # Fixed noise for sampling from G
-        fixed_noise = torch.randn(self.batch_size, self.z_dim, device=self.device)
-        if self.num_of_classes < self.batch_size:
-            fixed_labels = torch.from_numpy(np.tile(np.arange(self.num_of_classes), self.batch_size//self.num_of_classes + 1)[:self.batch_size]).to(self.device)
+        fixed_noise = torch.randn(self.config.batch_size_in_gpu, self.config.z_dim, device=self.device)
+        if self.num_of_classes < self.config.batch_size_in_gpu:
+            fixed_labels = torch.from_numpy(np.tile(np.arange(self.num_of_classes), self.config.batch_size_in_gpu//self.num_of_classes + 1)[:self.config.batch_size_in_gpu]).to(self.device)
         else:
-            fixed_labels = torch.from_numpy(np.arange(self.batch_size)).to(self.device)
+            fixed_labels = torch.from_numpy(np.arange(self.config.batch_size_in_gpu)).to(self.device)
 
         # For gan loss
-        label = torch.full((self.batch_size,), 1, device=self.device)
-        ones = torch.full((self.batch_size,), 1, device=self.device)
+        label = torch.full((self.config.batch_size_in_gpu,), 1, device=self.device)
+        ones = torch.full((self.config.batch_size_in_gpu,), 1, device=self.device)
 
         # Losses file
-        log_file_name = os.path.join(self.save_path, 'log.txt')
+        log_file_name = os.path.join(self.config.save_path, 'log.txt')
         log_file = open(log_file_name, "wt")
 
         # Init
@@ -146,19 +93,19 @@ class Trainer(object):
         D_Gz_trainGs = []
 
         # Instance noise - make random noise mean (0) and std for injecting
-        inst_noise_mean = torch.full((self.batch_size, 3, self.imsize, self.imsize), 0, device=self.device)
-        inst_noise_std = torch.full((self.batch_size, 3, self.imsize, self.imsize), self.inst_noise_sigma, device=self.device)
+        inst_noise_mean = torch.full((self.config.batch_size_in_gpu, 3, self.config.imsize, self.config.imsize), 0, device=self.device)
+        inst_noise_std = torch.full((self.config.batch_size_in_gpu, 3, self.config.imsize, self.config.imsize), self.config.inst_noise_sigma, device=self.device)
 
         # Start training
-        for self.step in range(self.start, self.total_step):
+        for self.step in range(self.start, self.config.total_step):
 
             # Instance noise std is linearly annealed from self.inst_noise_sigma to 0 thru self.inst_noise_sigma_iters
-            inst_noise_sigma_curr = 0 if self.step > self.inst_noise_sigma_iters else (1 - self.step/self.inst_noise_sigma_iters)*self.inst_noise_sigma
+            inst_noise_sigma_curr = 0 if self.step > self.config.inst_noise_sigma_iters else (1 - self.step/self.config.inst_noise_sigma_iters)*self.config.inst_noise_sigma
             inst_noise_std.fill_(inst_noise_sigma_curr)
 
             # ================== TRAIN D ================== #
 
-            for _ in range(self.d_steps_per_iter):
+            for _ in range(self.config.d_steps_per_iter):
 
                 # Zero grad
                 self.reset_grad()
@@ -173,9 +120,9 @@ class Trainer(object):
                 d_out_real = self.D(real_images + inst_noise, real_labels)
 
                 # Compute D loss with real images & real labels
-                if self.adv_loss == 'hinge':
+                if self.config.adv_loss == 'hinge':
                     d_loss_real = torch.nn.ReLU()(ones - d_out_real).mean()
-                elif self.adv_loss == 'wgan_gp':
+                elif self.config.adv_loss == 'wgan_gp':
                     d_loss_real = -d_out_real.mean()
                 else:
                     label.fill_(1)
@@ -187,7 +134,7 @@ class Trainer(object):
                 # TRAIN with FAKE
 
                 # Create random noise
-                z = torch.randn(self.batch_size, self.z_dim, device=self.device)
+                z = torch.randn(self.config.batch_size_in_gpu, self.config.z_dim, device=self.device)
 
                 # Generate fake images for same real labels
                 fake_images = self.G(z, real_labels)
@@ -197,9 +144,9 @@ class Trainer(object):
                 d_out_fake = self.D(fake_images.detach() + inst_noise, real_labels)
 
                 # Compute D loss with fake images & real labels
-                if self.adv_loss == 'hinge':
+                if self.config.adv_loss == 'hinge':
                     d_loss_fake = torch.nn.ReLU()(ones + d_out_fake).mean()
-                elif self.adv_loss == 'dcgan':
+                elif self.config.adv_loss == 'dcgan':
                     label.fill_(0)
                     d_loss_fake = self.criterion(d_out_fake, label)
                 else:
@@ -209,8 +156,8 @@ class Trainer(object):
                 d_loss_fake.backward()
 
                 # If WGAN_GP, compute GP and add to D loss
-                if self.adv_loss == 'wgan_gp':
-                    d_loss_gp = self.lambda_gp * self.compute_gradient_penalty(real_images, real_labels, fake_images.detach())
+                if self.config.adv_loss == 'wgan_gp':
+                    d_loss_gp = self.config.lambda_gp * self.compute_gradient_penalty(real_images, real_labels, fake_images.detach())
                     d_loss_gp.backward()
 
                 # Optimize
@@ -218,7 +165,7 @@ class Trainer(object):
 
             # ================== TRAIN G ================== #
 
-            for _ in range(self.g_steps_per_iter):
+            for _ in range(self.config.g_steps_per_iter):
 
                 # Zero grad
                 self.reset_grad()
@@ -227,7 +174,7 @@ class Trainer(object):
                 real_images, real_labels = self.get_real_samples()
 
                 # Create random noise
-                z = torch.randn(self.batch_size, self.z_dim).to(self.device)
+                z = torch.randn(self.config.batch_size_in_gpu, self.config.z_dim).to(self.device)
 
                 # Generate fake images for same real labels
                 fake_images = self.G(z, real_labels)
@@ -237,7 +184,7 @@ class Trainer(object):
                 g_out_fake = self.D(fake_images + inst_noise, real_labels)
 
                 # Compute G loss with fake images & real labels
-                if self.adv_loss == 'dcgan':
+                if self.config.adv_loss == 'dcgan':
                     label.fill_(1)
                     g_loss = self.criterion(g_out_fake, label)
                 else:
@@ -248,12 +195,12 @@ class Trainer(object):
                 self.G_optimizer.step()
 
             # Print out log info
-            if self.step % self.log_step == 0:
+            if self.step % self.config.log_step == 0:
                 G_losses.append(g_loss.mean().item())
                 D_losses_real.append(d_loss_real.mean().item())
                 D_losses_fake.append(d_loss_fake.mean().item())
                 D_loss = D_losses_real[-1] + D_losses_fake[-1]
-                if self.adv_loss == 'wgan_gp':
+                if self.config.adv_loss == 'wgan_gp':
                     D_loss += d_loss_gp.mean().item()
                 D_losses.append(D_loss)
                 D_xs.append(d_out_real.mean().item())
@@ -263,42 +210,43 @@ class Trainer(object):
                 curr_time_str = datetime.datetime.fromtimestamp(curr_time).strftime('%Y-%m-%d %H:%M:%S')
                 elapsed = str(datetime.timedelta(seconds=(curr_time - start_time)))
                 log = ("[{}] : Elapsed [{}], Iter [{} / {}], G_loss: {:.4f}, D_loss: {:.4f}, D_loss_real: {:.4f}, D_loss_fake: {:.4f}, D(x): {:.4f}, D(G(z))_trainD: {:.4f}, D(G(z))_trainG: {:.4f}\n".
-                       format(curr_time_str, elapsed, self.step, self.total_step,
+                       format(curr_time_str, elapsed, self.step, self.config.total_step,
                               G_losses[-1], D_losses[-1], D_losses_real[-1], D_losses_fake[-1],
                               D_xs[-1], D_Gz_trainDs[-1], D_Gz_trainGs[-1]))
-                print(log)
+                print('\n' + log)
                 log_file.write(log)
                 log_file.flush()
                 utils.make_plots(G_losses, D_losses, D_losses_real, D_losses_fake, D_xs, D_Gz_trainDs, D_Gz_trainGs,
-                                 self.log_step, self.save_path)
+                                 self.config.log_step, self.config.save_path)
 
             # Sample images
-            if self.step % self.sample_step == 0:
+            if self.step % self.config.sample_step == 0:
+                print("Saving image samples..")
                 self.G.eval()
                 fake_images = self.G(fixed_noise, fixed_labels)
                 self.G.train()
-                sample_images = utils.denorm(fake_images.detach()[:self.save_n_images])
+                sample_images = utils.denorm(fake_images.detach()[:self.config.save_n_images])
                 # Save batch images
-                vutils.save_image(sample_images, os.path.join(self.sample_path, 'fake_{:05d}.png'.format(self.step)))
+                vutils.save_image(sample_images, os.path.join(self.config.sample_images_path, 'fake_{:05d}.png'.format(self.step)), nrow=self.config.nrow)
                 # Save gif
                 utils.make_gif(sample_images[0].cpu().numpy().transpose(1, 2, 0)*255, self.step,
-                               self.sample_path, self.name, max_frames_per_gif=self.max_frames_per_gif)
+                               self.config.sample_images_path, self.config.name, max_frames_per_gif=self.config.max_frames_per_gif)
 
             # Save model
-            if self.step % self.model_save_step == 0:
+            if self.step % self.config.model_save_step == 0:
                 utils.save_ckpt(self)
 
     def build_models(self):
-        self.G = Generator(self.z_dim, self.g_conv_dim, self.num_of_classes).to(self.device)
-        self.D = Discriminator(self.d_conv_dim, self.num_of_classes).to(self.device)
-        if 'cuda' in self.device.type and self.parallel and torch.cuda.device_count() > 1:
+        self.G = Generator(self.config.z_dim, self.config.g_conv_dim, self.num_of_classes).to(self.device)
+        self.D = Discriminator(self.config.d_conv_dim, self.num_of_classes).to(self.device)
+        if 'cuda' in self.device.type and self.config.parallel and torch.cuda.device_count() > 1:
             self.G = nn.DataParallel(self.G)
             self.D = nn.DataParallel(self.D)
 
         # Loss and optimizer
         # self.G_optimizer = torch.optim.Adam(self.G.parameters(), self.g_lr, [self.beta1, self.beta2])
-        self.G_optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.G.parameters()), self.g_lr, [self.beta1, self.beta2])
-        self.D_optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.D.parameters()), self.d_lr, [self.beta1, self.beta2])
+        self.G_optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.G.parameters()), self.config.g_lr, [self.config.beta1, self.config.beta2])
+        self.D_optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.D.parameters()), self.config.d_lr, [self.config.beta1, self.config.beta2])
 
         # print networks
         print(self.G)

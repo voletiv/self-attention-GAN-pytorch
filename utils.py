@@ -33,6 +33,10 @@ def copy_scripts(dst):
     for file in glob.glob('*.py'):
         shutil.copy(file, dst)
 
+    for d in glob.glob('*/'):
+        if '__' not in d and d[0] != '.':
+            shutil.copytree(d, os.path.join(dst, d))
+
 
 def make_transform(resize=True, imsize=128, centercrop=False, centercrop_size=128,
                    totensor=True, tanh_scale=True,
@@ -70,7 +74,8 @@ def make_dataloader(batch_size, dataset_type, data_path, shuffle=True, drop_last
         assert os.path.exists(data_path), "data_path does not exist! Given: " + data_path
         dataset = dset.LSUN(root=data_path, classes=['bedroom_train'], transform=transform)
     elif dataset_type == 'cifar10':
-        assert os.path.exists(data_path), "data_path does not exist! Given: " + data_path
+        if not os.path.exists(data_path):
+            print("data_path does not exist! Given: {}\nDownloading CIFAR10 dataset...".format(data_path))
         dataset = dset.CIFAR10(root=data_path, download=True, transform=transform)
     elif dataset_type == 'fake':
         dataset = dset.FakeData(image_size=(3, centercrop_size, centercrop_size), transform=transforms.ToTensor())
@@ -175,7 +180,7 @@ def save_ckpt(sagan_obj, model=False, final=False):
                         'G_optimizer': sagan_obj.G_optimizer,
                         'D': sagan_obj.D.module,
                         'D_optimizer': sagan_obj.D_optimizer,
-                        }, os.path.join(sagan_obj.model_weights_path, '{}_model_ckpt_{}.pth'.format(sagan_obj.name, sagan_obj.step)))
+                        }, os.path.join(sagan_obj.config.model_weights_path, '{}_model_ckpt_{}.pth'.format(sagan_obj.config.name, sagan_obj.step)))
         except AttributeError:
             torch.save({
                         'step': sagan_obj.step,
@@ -183,7 +188,7 @@ def save_ckpt(sagan_obj, model=False, final=False):
                         'G_optimizer': sagan_obj.G_optimizer,
                         'D': sagan_obj.D,
                         'D_optimizer': sagan_obj.D_optimizer,
-                        }, os.path.join(sagan_obj.model_weights_path, '{}_model_ckpt_{}.pth'.format(sagan_obj.name, sagan_obj.step)))
+                        }, os.path.join(sagan_obj.config.model_weights_path, '{}_model_ckpt_{}.pth'.format(sagan_obj.config.name, sagan_obj.step)))
     elif final:
         # Save final - both model and state_dict
         try:
@@ -194,14 +199,14 @@ def save_ckpt(sagan_obj, model=False, final=False):
                         'G_optimizer_state_dict': sagan_obj.G_optimizer.state_dict(),
                         'D_state_dict': sagan_obj.D.module.state_dict(),
                         'D_optimizer_state_dict': sagan_obj.D_optimizer.state_dict(),
-                        }, os.path.join(sagan_obj.model_weights_path, '{}_final_state_dict_ckpt_{}.pth'.format(sagan_obj.name, sagan_obj.step)))
+                        }, os.path.join(sagan_obj.config.model_weights_path, '{}_final_state_dict_ckpt_{}.pth'.format(sagan_obj.config.name, sagan_obj.step)))
             torch.save({
                         'step': sagan_obj.step,
                         'G': sagan_obj.G,
                         'G_optimizer': sagan_obj.G_optimizer,
                         'D': sagan_obj.D,
                         'D_optimizer': sagan_obj.D_optimizer,
-                        }, os.path.join(sagan_obj.model_weights_path, '{}_final_model_ckpt_{}.pth'.format(sagan_obj.name, sagan_obj.step)))
+                        }, os.path.join(sagan_obj.config.model_weights_path, '{}_final_model_ckpt_{}.pth'.format(sagan_obj.config.name, sagan_obj.step)))
 
         except AttributeError:
             torch.save({
@@ -210,14 +215,14 @@ def save_ckpt(sagan_obj, model=False, final=False):
                         'G_optimizer_state_dict': sagan_obj.G_optimizer.state_dict(),
                         'D_state_dict': sagan_obj.D.state_dict(),
                         'D_optimizer_state_dict': sagan_obj.D_optimizer.state_dict(),
-                        }, os.path.join(sagan_obj.model_weights_path, '{}_final_state_dict_ckpt_{}.pth'.format(sagan_obj.name, sagan_obj.step)))
+                        }, os.path.join(sagan_obj.config.model_weights_path, '{}_final_state_dict_ckpt_{}.pth'.format(sagan_obj.config.name, sagan_obj.step)))
             torch.save({
                         'step': sagan_obj.step,
                         'G': sagan_obj.G,
                         'G_optimizer': sagan_obj.G_optimizer,
                         'D': sagan_obj.D,
                         'D_optimizer': sagan_obj.D_optimizer,
-                        }, os.path.join(sagan_obj.model_weights_path, '{}_final_model_ckpt_{}.pth'.format(sagan_obj.name, sagan_obj.step)))
+                        }, os.path.join(sagan_obj.config.model_weights_path, '{}_final_model_ckpt_{}.pth'.format(sagan_obj.config.name, sagan_obj.step)))
     else:
         # Save state_dict
         try:
@@ -228,7 +233,7 @@ def save_ckpt(sagan_obj, model=False, final=False):
                         'G_optimizer_state_dict': sagan_obj.G_optimizer.state_dict(),
                         'D_state_dict': sagan_obj.D.module.state_dict(),
                         'D_optimizer_state_dict': sagan_obj.D_optimizer.state_dict(),
-                        }, os.path.join(sagan_obj.model_weights_path, 'ckpt_{:07d}.pth'.format(sagan_obj.step)))
+                        }, os.path.join(sagan_obj.config.model_weights_path, 'ckpt_{:07d}.pth'.format(sagan_obj.step)))
         except AttributeError:
             torch.save({
                         'step': sagan_obj.step,
@@ -236,28 +241,29 @@ def save_ckpt(sagan_obj, model=False, final=False):
                         'G_optimizer_state_dict': sagan_obj.G_optimizer.state_dict(),
                         'D_state_dict': sagan_obj.D.state_dict(),
                         'D_optimizer_state_dict': sagan_obj.D_optimizer.state_dict(),
-                        }, os.path.join(sagan_obj.model_weights_path, 'ckpt_{:07d}.pth'.format(sagan_obj.step)))
+                        }, os.path.join(sagan_obj.config.model_weights_path, 'ckpt_{:07d}.pth'.format(sagan_obj.step)))
 
 
 def load_pretrained_model(sagan_obj):
+    print("Loading pretrained_model", sagan_obj.config.pretrained_model, "...")
     # Check for path
-    assert os.path.exists(sagan_obj.pretrained_model), "Path of .pth pretrained_model doesn't exist! Given: " + sagan_obj.pretrained_model
-    checkpoint = torch.load(sagan_obj.pretrained_model)
+    assert os.path.exists(sagan_obj.config.pretrained_model), "Path of .pth pretrained_model doesn't exist! Given: " + sagan_obj.config.pretrained_model
+    checkpoint = torch.load(sagan_obj.config.pretrained_model)
     # If we know it is a state_dict (instead of complete model)
-    if sagan_obj.state_dict_or_model == 'state_dict':
+    if sagan_obj.config.state_dict_or_model == 'state_dict':
         sagan_obj.start = checkpoint['step'] + 1
         sagan_obj.G.load_state_dict(checkpoint['G_state_dict'])
         sagan_obj.G_optimizer.load_state_dict(checkpoint['G_optimizer_state_dict'])
         sagan_obj.D.load_state_dict(checkpoint['D_state_dict'])
         sagan_obj.D_optimizer.load_state_dict(checkpoint['D_optimizer_state_dict'])
     # Else, if we know it is a complete model (and not just state_dict)
-    elif sagan_obj.state_dict_or_model == 'model':
+    elif sagan_obj.config.state_dict_or_model == 'model':
         sagan_obj.start = checkpoint['step'] + 1
         sagan_obj.G = torch.load(checkpoint['G']).to(sagan_obj.device)
         sagan_obj.G_optimizer = torch.load(checkpoint['G_optimizer'])
         sagan_obj.D = torch.load(checkpoint['D']).to(sagan_obj.device)
         sagan_obj.D_optimizer = torch.load(checkpoint['D_optimizer'])
-    # Else try for complete model
+    # Else try for complete model, then try for state_dict
     else:
         try:
             sagan_obj.start = checkpoint['step'] + 1
@@ -274,13 +280,13 @@ def load_pretrained_model(sagan_obj):
 
 
 def check_for_CUDA(sagan_obj):
-    if not sagan_obj.disable_cuda and torch.cuda.is_available():
+    if not sagan_obj.config.disable_cuda and torch.cuda.is_available():
         print("CUDA is available!")
         sagan_obj.device = torch.device('cuda')
-        sagan_obj.dataloader_args['pin_memory'] = True
+        sagan_obj.config.dataloader_args['pin_memory'] = True
     else:
         print("Cuda is NOT available, running on CPU.")
         sagan_obj.device = torch.device('cpu')
 
-    if torch.cuda.is_available() and sagan_obj.disable_cuda:
+    if torch.cuda.is_available() and sagan_obj.config.disable_cuda:
         print("WARNING: You have a CUDA device, so you should probably run without --disable_cuda")
