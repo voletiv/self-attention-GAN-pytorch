@@ -77,7 +77,7 @@ class ConditionalBatchNorm2d(nn.Module):
     def __init__(self, num_features, num_classes):
         super().__init__()
         self.num_features = num_features
-        self.bn = nn.BatchNorm2d(num_features, affine=False)
+        self.bn = nn.BatchNorm2d(num_features, momentum=0.001, affine=False)
         self.embed = nn.Embedding(num_classes, num_features * 2)
         # self.embed.weight.data[:, :num_features].normal_(1, 0.02)  # Initialise scale at N(1, 0.02)
         self.embed.weight.data[:, :num_features].fill_(1.)  # Initialize scale to 1
@@ -133,7 +133,7 @@ class Generator(nn.Module):
         self.self_attn = Self_Attn(g_conv_dim*4)
         self.block4 = GenBlock(g_conv_dim*4, g_conv_dim*2, num_classes)
         self.block5 = GenBlock(g_conv_dim*2, g_conv_dim, num_classes)
-        self.bn = nn.BatchNorm2d(g_conv_dim, eps=1e-5, momentum=0.9999)
+        self.bn = nn.BatchNorm2d(g_conv_dim, eps=1e-5, momentum=0.0001, affine=True)
         self.relu = nn.ReLU(inplace=True)
         self.snconv2d1 = snconv2d(in_channels=g_conv_dim, out_channels=3, kernel_size=3, stride=1, padding=1)
         self.tanh = nn.Tanh()
@@ -173,7 +173,6 @@ class DiscOptBlock(nn.Module):
         x = self.snconv2d1(x)
         x = self.relu(x)
         x = self.snconv2d2(x)
-        x = self.relu(x)
         x = self.downsample(x)
 
         x0 = self.downsample(x0)
