@@ -131,7 +131,7 @@ class Trainer(object):
                         d_loss_real = self.criterion(d_out_real, label)
 
                     # Backward
-                    d_loss_real /= self.config.batch_size//self.config.batch_size_in_gpu
+                    d_loss_real /= self.gpu_batches
                     d_loss_real.backward()
 
                     # Delete loss, output
@@ -165,7 +165,7 @@ class Trainer(object):
                         d_loss_fake += d_loss_gp
 
                     # Backward
-                    d_loss_fake /= self.config.batch_size//self.config.batch_size_in_gpu
+                    d_loss_fake /= self.gpu_batches
                     d_loss_fake.backward()
 
                     # Delete loss, output
@@ -208,7 +208,7 @@ class Trainer(object):
                         g_loss = -g_out_fake.mean()
 
                     # Backward
-                    g_loss /= self.config.batch_size//self.config.batch_size_in_gpu
+                    g_loss /= self.gpu_batches
                     g_loss.backward()
 
                     # Delete loss, output
