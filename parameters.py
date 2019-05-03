@@ -15,16 +15,16 @@ def get_parameters():
 
     # Training settings
     parser.add_argument('--batch_size', type=int, default=64)
-    parser.add_argument('--batch_size_in_gpu', type=int, default=32)
+    parser.add_argument('--batch_size_in_gpu', type=int, default=64)
     parser.add_argument('--strict_batch_size', action='store_true',
                         help="If true, will ensure batch_size_in_gpu divides batch_size, else will display effective batch_size")
-    parser.add_argument('--total_step', type=int, default=1000000, help='how many iterations')
+    parser.add_argument('--total_step', type=int, default=2000000, help='how many iterations')
     parser.add_argument('--d_steps_per_iter', type=int, default=1, help='how many D updates per iteration')
     parser.add_argument('--g_steps_per_iter', type=int, default=1, help='how many G updates per iteration')
     parser.add_argument('--d_lr', type=float, default=0.0004)
     parser.add_argument('--g_lr', type=float, default=0.0001)
     parser.add_argument('--beta1', type=float, default=0.0)
-    parser.add_argument('--beta2', type=float, default=0.9)
+    parser.add_argument('--beta2', type=float, default=0.999)
 
     # Model hyper-parameters
     parser.add_argument('--adv_loss', type=str, default='hinge', choices=['hinge', 'dcgan', 'wgan_gp', 'gan'])
@@ -36,7 +36,7 @@ def get_parameters():
     # Instance noise
     # https://github.com/soumith/ganhacks/issues/14#issuecomment-312509518
     # https://www.inference.vc/instance-noise-a-trick-for-stabilising-gan-training/
-    parser.add_argument('--inst_noise_sigma', type=float, default=0.1)
+    parser.add_argument('--inst_noise_sigma', type=float, default=0.0)
     parser.add_argument('--inst_noise_sigma_iters', type=int, default=2000)
 
     # Image transforms
@@ -46,8 +46,7 @@ def get_parameters():
     parser.add_argument('--imsize', type=int, default=128)
     parser.add_argument('--centercrop', action='store_true', help="Whether to center crop images")
     parser.add_argument('--centercrop_size', type=int, default=128)
-    parser.add_argument('--dont_tanh_scale', action='store_true', help="Whether to scale image values to -1->1")
-    parser.add_argument('--normalize', action='store_true', help="Whether to normalize image values")
+    parser.add_argument('--dont_normalize', action='store_true', help="Whether to normalize image values")
 
     # Step sizes
     parser.add_argument('--log_step', type=int, default=10)
@@ -88,7 +87,7 @@ def get_parameters():
     args.shuffle = not args.dont_shuffle
     args.drop_last = not args.dont_drop_last
     args.resize = not args.dont_resize
-    args.tanh_scale = not args.dont_tanh_scale
+    args.normalize = not args.dont_normalize
 
     args.dataloader_args = {'num_workers':args.num_workers}
 
