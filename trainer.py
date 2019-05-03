@@ -92,6 +92,8 @@ class Trainer(object):
         inst_noise_mean = torch.full((self.config.batch_size_in_gpu, 3, self.config.imsize, self.config.imsize), 0, device=self.device)
         inst_noise_std = torch.full((self.config.batch_size_in_gpu, 3, self.config.imsize, self.config.imsize), self.config.inst_noise_sigma, device=self.device)
 
+        self.gpu_batches = self.config.batch_size//self.config.batch_size_in_gpu
+
         # Start training
         for self.step in range(self.start, self.config.total_step):
 
@@ -108,7 +110,7 @@ class Trainer(object):
 
                 # Accumulate losses for full batch_size
                 # while running GPU computations on only batch_size_in_gpu
-                for _ in range(self.config.batch_size//self.config.batch_size_in_gpu):
+                for gpu_batch in range(self.gpu_batches):
 
                     # TRAIN with REAL
 
@@ -132,6 +134,10 @@ class Trainer(object):
                     d_loss_real /= self.config.batch_size//self.config.batch_size_in_gpu
                     d_loss_real.backward()
 
+                    # Delete loss, output
+                    if self.step % self.config.log_step != 0 or gpu_batch < self.gpu_batches - 1:
+                        del d_out_real, d_loss_real
+
                     # TRAIN with FAKE
 
                     # Create random noise
@@ -153,15 +159,19 @@ class Trainer(object):
                     else:
                         d_loss_fake = d_out_fake.mean()
 
+                    # If WGAN_GP, compute GP and add to D loss
+                    if self.config.adv_loss == 'wgan_gp':
+                        d_loss_gp = self.config.lambda_gp * self.compute_gradient_penalty(real_images, real_labels, fake_images.detach())
+                        d_loss_fake += d_loss_gp
+
                     # Backward
                     d_loss_fake /= self.config.batch_size//self.config.batch_size_in_gpu
                     d_loss_fake.backward()
 
-                    # If WGAN_GP, compute GP and add to D loss
-                    if self.config.adv_loss == 'wgan_gp':
-                        d_loss_gp = self.config.lambda_gp * self.compute_gradient_penalty(real_images, real_labels, fake_images.detach())
-                        d_loss_gp /= self.config.batch_size//self.config.batch_size_in_gpu
-                        d_loss_gp.backward()
+                    # Delete loss, output
+                    del fake_images
+                    if self.step % self.config.log_step != 0 or gpu_batch < self.gpu_batches - 1:
+                        del d_out_fake, d_loss_fake
 
                 # Optimize
                 self.D_optimizer.step()
@@ -175,7 +185,7 @@ class Trainer(object):
 
                 # Accumulate losses for full batch_size
                 # while running GPU computations on only batch_size_in_gpu
-                for _ in range(self.config.batch_size//self.config.batch_size_in_gpu):
+                for gpu_batch in range(self.gpu_batches):
 
                     # Get real images & real labels (only need real labels)
                     real_images, real_labels = self.get_real_samples()
@@ -200,6 +210,11 @@ class Trainer(object):
                     # Backward
                     g_loss /= self.config.batch_size//self.config.batch_size_in_gpu
                     g_loss.backward()
+
+                    # Delete loss, output
+                    del fake_images
+                    if self.step % self.config.log_step != 0 or gpu_batch < self.gpu_batches - 1:
+                        del g_out_fake, g_loss
 
                 # Optimize
                 self.G_optimizer.step()
@@ -229,6 +244,9 @@ class Trainer(object):
                 utils.make_plots(G_losses, D_losses, D_losses_real, D_losses_fake, D_xs, D_Gz_trainDs, D_Gz_trainGs,
                                  self.config.log_step, self.config.save_path)
 
+                # Delete loss, output
+                del d_out_real, d_loss_real, d_out_fake, d_loss_fake, g_out_fake, g_loss
+
             # Sample images
             if self.step % self.config.sample_step == 0:
                 print("Saving image samples..")
@@ -241,6 +259,8 @@ class Trainer(object):
                 # Save gif
                 utils.make_gif(sample_images[0].cpu().numpy().transpose(1, 2, 0)*255, self.step,
                                self.config.sample_images_path, self.config.name, max_frames_per_gif=self.config.max_frames_per_gif)
+                # Delete output
+                del fake_images
 
             # Save model
             if self.step % self.config.model_save_step == 0:
