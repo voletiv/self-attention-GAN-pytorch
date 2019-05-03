@@ -46,10 +46,6 @@ class Trainer(object):
         # Build G and D
         self.build_models()
 
-        # Start with pretrained model (if it exists)
-        if self.config.pretrained_model != '':
-            utils.load_pretrained_model(self)
-
         if self.config.adv_loss == 'dcgan':
             self.criterion = nn.BCELoss()
 
@@ -253,14 +249,19 @@ class Trainer(object):
     def build_models(self):
         self.G = Generator(self.config.z_dim, self.config.g_conv_dim, self.num_of_classes).to(self.device)
         self.D = Discriminator(self.config.d_conv_dim, self.num_of_classes).to(self.device)
-        if 'cuda' in self.device.type and self.config.parallel and torch.cuda.device_count() > 1:
-            self.G = nn.DataParallel(self.G)
-            self.D = nn.DataParallel(self.D)
 
         # Loss and optimizer
         # self.G_optimizer = torch.optim.Adam(self.G.parameters(), self.g_lr, [self.beta1, self.beta2])
         self.G_optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.G.parameters()), self.config.g_lr, [self.config.beta1, self.config.beta2])
         self.D_optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.D.parameters()), self.config.d_lr, [self.config.beta1, self.config.beta2])
+
+        # Start with pretrained model (if it exists)
+        if self.config.pretrained_model != '':
+            utils.load_pretrained_model(self)
+
+        if 'cuda' in self.device.type and self.config.parallel and torch.cuda.device_count() > 1:
+            self.G = nn.DataParallel(self.G)
+            self.D = nn.DataParallel(self.D)
 
         # print networks
         print(self.G)
