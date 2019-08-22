@@ -245,11 +245,11 @@ class Discriminator(nn.Module):
         h5 = self.block5(h4, downsample=False)  # n x d_conv_dim*16 x 4 x 4
         h5 = self.relu(h5)              # n x d_conv_dim*16 x 4 x 4
         h6 = torch.sum(h5, dim=[2,3])   # n x d_conv_dim*16
-        output1 = torch.squeeze(self.snlinear1(h6)) # n x 1
+        output1 = torch.squeeze(self.snlinear1(h6)) # n
         # Projection
         h_labels = self.sn_embedding1(labels)   # n x d_conv_dim*16
         proj = torch.mul(h6, h_labels)          # n x d_conv_dim*16
-        output2 = torch.sum(proj, dim=[1])      # n x 1
+        output2 = torch.sum(proj, dim=[1])      # n
         # Out
-        output = output1 + output2              # n x 1
+        output = output1 + output2              # n
         return output

@@ -161,9 +161,9 @@ def save_ckpt(sagan_obj, model=False, final=False):
                     }, os.path.join(sagan_obj.config.model_weights_path, '{}_final_state_dict_ckpt_{:07d}.pth'.format(sagan_obj.config.name, sagan_obj.step)))
         torch.save({
                     'step': sagan_obj.step,
-                    'G': sagan_obj.G,
+                    'G': sagan_obj.G.module if hasattr(sagan_obj.G, "module") else sagan_obj.G,
                     'G_optimizer': sagan_obj.G_optimizer,
-                    'D': sagan_obj.D,
+                    'D': sagan_obj.D.module if hasattr(sagan_obj.D, "module") else sagan_obj.D,
                     'D_optimizer': sagan_obj.D_optimizer,
                     }, os.path.join(sagan_obj.config.model_weights_path, '{}_final_model_ckpt_{:07d}.pth'.format(sagan_obj.config.name, sagan_obj.step)))
 
