@@ -39,8 +39,7 @@ def copy_scripts(dst):
 
 
 def make_transform(resize=True, imsize=128, centercrop=False, centercrop_size=128,
-                   totensor=True,
-                   normalize=False, norm_mean=(0.5, 0.5, 0.5), norm_std=(0.5, 0.5, 0.5)):
+                   totensor=True, normalize=True, norm_mean=(0.5, 0.5, 0.5), norm_std=(0.5, 0.5, 0.5)):
         options = []
         if resize:
             options.append(transforms.Resize((imsize)))
@@ -56,12 +55,11 @@ def make_transform(resize=True, imsize=128, centercrop=False, centercrop_size=12
 
 def make_dataloader(batch_size, dataset_type, data_path, shuffle=True, drop_last=True, dataloader_args={},
                     resize=True, imsize=128, centercrop=False, centercrop_size=128, totensor=True,
-                    normalize=False, norm_mean=(0.5, 0.5, 0.5), norm_std=(0.5, 0.5, 0.5)):
+                    normalize=True, norm_mean=(0.5, 0.5, 0.5), norm_std=(0.5, 0.5, 0.5)):
     # Make transform
     transform = make_transform(resize=resize, imsize=imsize,
                                centercrop=centercrop, centercrop_size=centercrop_size,
-                               totensor=totensor,
-                               normalize=normalize, norm_mean=norm_mean, norm_std=norm_std)
+                               totensor=totensor, normalize=normalize, norm_mean=norm_mean, norm_std=norm_std)
     # Make dataset
     if dataset_type in ['folder', 'imagenet', 'lfw']:
         # folder dataset

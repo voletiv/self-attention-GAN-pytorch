@@ -36,9 +36,18 @@ class Trainer(object):
         utils.check_for_CUDA(self)
 
         # Make dataloader
-        self.dataloader, self.num_of_classes = utils.make_dataloader(self.config.batch_size_in_gpu, self.config.dataset, self.config.data_path,
-                                                                     self.config.shuffle, self.config.drop_last, self.config.dataloader_args,
-                                                                     self.config.resize, self.config.imsize, self.config.centercrop, self.config.centercrop_size)
+        self.dataloader, self.num_of_classes = utils.make_dataloader(batch_size=self.config.batch_size_in_gpu,
+                                                                     dataset_type=self.config.dataset,
+                                                                     data_path=self.config.data_path,
+                                                                     shuffle=self.config.shuffle,
+                                                                     drop_last=self.config.drop_last,
+                                                                     dataloader_args=self.config.dataloader_args,
+                                                                     resize=self.config.resize,
+                                                                     imsize=self.config.imsize,
+                                                                     centercrop=self.config.centercrop,
+                                                                     centercrop_size=self.config.centercrop_size,
+                                                                     normalize=self.config.normalize,
+                                                                     )
 
         # Data iterator
         self.data_iter = iter(self.dataloader)
